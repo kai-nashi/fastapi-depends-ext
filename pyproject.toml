@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fastapi-depends-ext"
-version = "0.1.0"
+version = "0.1.1"
 description = "Extends FastAPI Depends classes to simple way of modifying them after creating"
 authors = ["Nikakto <mcgish@gmail.com>"]
 
