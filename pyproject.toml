@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "fastapi-depends-ext"
-version = "0.1.2"
+version = "0.1.3"
 description = "Extends FastAPI Depends classes to simple way of modifying them after creating"
 authors = ["Nikakto <mcgish@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = ">3.8"
+python = ">=3.8 <4.0"
 fastapi = ">=0.70.0 <1.0.0"
 
 [tool.poetry.dev-dependencies]
