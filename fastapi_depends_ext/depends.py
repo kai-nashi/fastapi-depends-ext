@@ -17,52 +17,52 @@ SUPPORTED_DEPENDS = Union[Callable[..., Any], FieldInfo, params.Depends]
 SPECIAL_METHODS: Final = ("__call__", "__init__", "__new__")
 
 
-class DependsMethodBinder:
+class DependsAttrBinder:
     def __init__(self, *args, **kwargs):
-        super(DependsMethodBinder, self).__init__(*args, **kwargs)
+        super(DependsAttrBinder, self).__init__(*args, **kwargs)
 
         methods = inspect.getmembers(self, predicate=inspect.ismethod)
         functions = inspect.getmembers(self, predicate=inspect.isfunction)
 
         for method_name, method in methods + functions:
             signature = get_typed_signature(method)
-            values_is_depends_method = [
-                param.default for param in signature.parameters.values() if isinstance(param.default, DependsMethod)
+            values_is_depends_attr = [
+                param.default for param in signature.parameters.values() if isinstance(param.default, DependsAttr)
             ]
 
-            if not values_is_depends_method:
+            if not values_is_depends_attr:
                 continue
 
             if method_name in SPECIAL_METHODS:
                 class_method = f"{type(self).__name__}.{method.__name__}"
-                raise AttributeError(f"`{class_method}` can't have `DependsMethod` as default value for arguments")
+                raise AttributeError(f"`{class_method}` can't have `DependsAttr` as default value for arguments")
 
             self.bind(method)
 
     def bind(self, method: Callable) -> Callable:
-        def depends_method_bind(depends: DependsMethod, _base_class: type, instance) -> DependsMethod:
+        def depends_attr_bind(depends: DependsAttr, _base_class: type, instance) -> DependsAttr:
 
-            # todo: DependsMethod.__copy__
-            depends_copy = DependsMethod(
+            # todo: DependsAttr.__copy__
+            depends_copy = DependsAttr(
                 method_name=depends.method_name,
                 from_super=depends.from_super,
                 use_cache=depends.use_cache,
             )
 
-            dependency = depends_method_get_method(depends, _base_class, instance)
+            dependency = depends_attr_get_method(depends, _base_class, instance)
             depends_copy.dependency = self.bind(dependency)
             return depends_copy
 
-        def depends_method_get_method(depends: DependsMethod, _base_class: type, instance) -> Callable:
-            # todo: DependsMethod.get_method
+        def depends_attr_get_method(depends: DependsAttr, _base_class: type, instance) -> Callable:
+            # todo: DependsAttr.get_method
             obj = super(_base_class, instance) if depends.from_super else instance
             return getattr(obj, depends.method_name)
 
         base_class = get_base_class(method)
         signature = get_typed_signature(method)
-        parameters = (param for param in signature.parameters.values() if isinstance(param.default, DependsMethod))
+        parameters = (param for param in signature.parameters.values() if isinstance(param.default, DependsAttr))
         instance_method_params = {
-            parameter.name: depends_method_bind(parameter.default, base_class, self) for parameter in parameters
+            parameter.name: depends_attr_bind(parameter.default, base_class, self) for parameter in parameters
         }
 
         if instance_method_params:
@@ -91,9 +91,9 @@ class DependsExt(params.Depends):
         return DependsExt(patched, use_cache=self.use_cache)
 
 
-class DependsMethod(DependsExt):
+class DependsAttr(DependsExt):
     def __init__(self, method_name: str, *, from_super: bool = False, use_cache=True):
-        super(DependsMethod, self).__init__(use_cache=use_cache)
+        super(DependsAttr, self).__init__(use_cache=use_cache)
         self.from_super = from_super
         self.method_name = method_name
 
@@ -123,8 +123,8 @@ class DependsMethod(DependsExt):
         signature = get_typed_signature(method)
 
         for parameter in signature.parameters.values():
-            depends: DependsMethod = parameter.default
-            if not isinstance(depends, DependsMethod) or depends.is_bound:
+            depends: DependsAttr = parameter.default
+            if not isinstance(depends, DependsAttr) or depends.is_bound:
                 continue
 
             elif depends.method_name != self.method_name or depends.from_super:
