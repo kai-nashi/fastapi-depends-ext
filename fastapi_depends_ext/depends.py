@@ -1,3 +1,4 @@
+import functools
 import inspect
 from typing import Any
 from typing import Callable
@@ -14,7 +15,8 @@ from fastapi_depends_ext.utils import patch_defaults
 
 
 SUPPORTED_DEPENDS = Union[Callable[..., Any], FieldInfo, params.Depends]
-SPECIAL_METHODS: Final = ("__call__", "__init__", "__new__")
+SPECIAL_METHODS_ERROR: Final = ("__call__",)
+SPECIAL_METHODS_IGNORE: Final = ("__init__", "__new__")
 
 
 class DependsAttrBinder:
@@ -25,6 +27,9 @@ class DependsAttrBinder:
         functions = inspect.getmembers(self, predicate=inspect.isfunction)
 
         for method_name, method in methods + functions:
+            if method_name in SPECIAL_METHODS_IGNORE:
+                continue
+
             signature = get_typed_signature(method)
             values_is_depends_attr = [
                 param.default for param in signature.parameters.values() if isinstance(param.default, DependsAttr)
@@ -33,7 +38,7 @@ class DependsAttrBinder:
             if not values_is_depends_attr:
                 continue
 
-            if method_name in SPECIAL_METHODS:
+            if method_name in SPECIAL_METHODS_ERROR:
                 class_method = f"{type(self).__name__}.{method.__name__}"
                 raise AttributeError(f"`{class_method}` can't have `DependsAttr` as default value for arguments")
 
@@ -49,8 +54,12 @@ class DependsAttrBinder:
                 use_cache=depends.use_cache,
             )
 
-            dependency = depends_attr_get_method(depends, _base_class, instance)
-            depends_copy.dependency = self.bind(dependency)
+            method_definition = getattr(_base_class, depends.method_name)
+            if isinstance(method_definition, property):
+                depends_copy.dependency = functools.partial(method_definition.fget, instance)
+            else:
+                dependency = depends_attr_get_method(depends, _base_class, instance)
+                depends_copy.dependency = self.bind(dependency)
             return depends_copy
 
         def depends_attr_get_method(depends: DependsAttr, _base_class: type, instance) -> Callable:
@@ -58,7 +67,7 @@ class DependsAttrBinder:
             obj = super(_base_class, instance) if depends.from_super else instance
             return getattr(obj, depends.method_name)
 
-        base_class = get_base_class(method)
+        base_class = get_base_class(self, method.__name__, method)
         signature = get_typed_signature(method)
         parameters = (param for param in signature.parameters.values() if isinstance(param.default, DependsAttr))
         instance_method_params = {
@@ -119,7 +128,7 @@ class DependsAttr(DependsExt):
                 cls_name = f"super({cls_name}, instance)"
             raise AttributeError(f"{cls_name} has not method `{self.method_name}`")
 
-        cls = get_base_class(method)
+        cls = get_base_class(instance, self.method_name, method)
         signature = get_typed_signature(method)
 
         for parameter in signature.parameters.values():

@@ -4,22 +4,32 @@ from inspect import Signature
 from types import FunctionType
 from types import MethodType
 from typing import Callable
+from typing import Optional
 
 from fastapi.dependencies.utils import get_typed_signature
 
 
-def get_base_class(method: Callable) -> type:
-    if inspect.ismethod(method):
-        for cls in inspect.getmro(method.__self__.__class__):
-            if cls.__dict__.get(method.__name__) is method.__func__:
-                return cls
-        method = method.__func__  # fallback to __qualname__ parsing
+def _get_func(instance, func) -> callable:
+    if type(func) is property:
+        return _get_func(instance, func.fget(instance))
+    elif type(func) in (classmethod, staticmethod) or inspect.ismethod(func):
+        return func.__func__
+    elif callable(func):
+        return func
+    else:
+        raise TypeError(f"Incorrect type of `{func}`")
 
-    if inspect.isfunction(method):
-        cls = getattr(inspect.getmodule(method), method.__qualname__.split(".<locals>", 1)[0].rsplit(".", 1)[0])
-        if isinstance(cls, type):
+
+def get_base_class(instance: object, method_name: str, method_target: [type, Callable]) -> Optional[type]:
+    for cls in inspect.getmro(type(instance)):
+        method_cls = cls.__dict__.get(method_name)
+        if method_cls is None:  # check to None cause can be not callable like property object (not property value)
+            continue
+
+        _func_class = _get_func(instance, method_cls)
+        _func_target = _get_func(instance, method_target)
+        if _func_class is _func_target:
             return cls
-    return getattr(method, "__objclass__", None)  # handle special descriptor objects
 
 
 def get_super_for_method(base_class: type, method_name: str, super_from: type = None) -> type:

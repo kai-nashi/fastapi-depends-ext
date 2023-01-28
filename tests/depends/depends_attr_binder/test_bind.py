@@ -6,11 +6,7 @@ from fastapi.dependencies.utils import get_typed_signature
 
 from fastapi_depends_ext.depends import DependsAttr
 from fastapi_depends_ext.depends import DependsAttrBinder
-
-
-class SimpleDependency:
-    def dependency(self) -> int:
-        return 2
+from tests.utils_for_tests import SimpleDependency
 
 
 def test_bind__method_has_no_depends__method_not_change(mocker):
@@ -45,7 +41,7 @@ def test_bind__method_has_depends__method_not_change(mocker):
     assert signature.parameters["depends"].default is depends
 
 
-def test_bind__method_has_depends_attr__method_changed(mocker):
+def test_bind__method_has_depends_method__method_changed(mocker):
     depends = DependsAttr("dependency")
 
     class TestClass(SimpleDependency, DependsAttrBinder):
@@ -122,7 +118,66 @@ def test_bind__method_has_depends_static_method__method_change(mocker):
     assert depends_attr.default.dependency is TestClass.dependency
 
 
-def test_bind__method_has_depends_attr_chained__method_changed_all(mocker):
+def test_bind__method_has_depends_property__method_change(mocker):
+    depends = DependsAttr("dependency")
+
+    def real_dependency():
+        return 1
+
+    class TestClass(DependsAttrBinder):
+        @property
+        def dependency(self):
+            return real_dependency
+
+        def method(self, depends_attr: Any = depends):
+            pass
+
+    with mocker.patch.object(DependsAttrBinder, "__init__", unittest.mock.MagicMock(return_value=None)):
+        instance = TestClass()
+    instance.bind(instance.method)
+
+    assert instance.method.__self__ is instance
+    assert instance.method.__func__ is not TestClass.method
+    assert instance.method.__func__.__code__ is TestClass.method.__code__
+
+    signature = get_typed_signature(instance.method)
+    depends_attr = signature.parameters["depends_attr"]
+    assert isinstance(depends_attr.default, DependsAttr)
+    assert depends_attr.default is not depends
+    assert depends_attr.default.is_bound
+    assert depends_attr.default.dependency is not real_dependency
+    assert depends_attr.default.dependency() is real_dependency
+
+
+def test_bind__method_has_depends_class__method_change(mocker):
+    depends = DependsAttr("dependency")
+
+    class Dependency:
+        pass
+
+    class TestClass(DependsAttrBinder):
+        dependency = Dependency
+
+        def method(self, depends_attr: Any = depends):
+            pass
+
+    with mocker.patch.object(DependsAttrBinder, "__init__", unittest.mock.MagicMock(return_value=None)):
+        instance = TestClass()
+    instance.bind(instance.method)
+
+    assert instance.method.__self__ is instance
+    assert instance.method.__func__ is not TestClass.method
+    assert instance.method.__func__.__code__ is TestClass.method.__code__
+
+    signature = get_typed_signature(instance.method)
+    depends_attr = signature.parameters["depends_attr"]
+    assert isinstance(depends_attr.default, DependsAttr)
+    assert depends_attr.default is not depends
+    assert depends_attr.default.is_bound
+    assert depends_attr.default.dependency is Dependency
+
+
+def test_bind__method_has_depends_method_chained__method_changed_all(mocker):
     depends = [DependsAttr("dependency"), DependsAttr("method_1")]
 
     class TestClass(SimpleDependency, DependsAttrBinder):
@@ -160,7 +215,7 @@ def test_bind__method_has_depends_attr_chained__method_changed_all(mocker):
     assert depends_attr.default.dependency.__func__ is TestClass.dependency
 
 
-def test_bind__method_has_depends_attr_chained_to_super__method_changed_all(mocker):
+def test_bind__method_has_depends_method_chained_to_super__method_changed_all(mocker):
     depends = DependsAttr("dependency", from_super=True)
 
     class BaseClass(SimpleDependency):
@@ -188,7 +243,7 @@ def test_bind__method_has_depends_attr_chained_to_super__method_changed_all(mock
     assert depends_attr.default.dependency.__func__ is BaseClass.dependency
 
 
-def test_bind__method_has_depends_attr_chained_to_super_deep__method_changed_all(mocker):
+def test_bind__method_has_depends_method_chained_to_super_deep__method_changed_all(mocker):
     depends = DependsAttr("dependency", from_super=True)
     depends_mixin = DependsAttr("dependency", from_super=True)
 
