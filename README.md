@@ -81,7 +81,7 @@ Useless(?) class created to proof of concept of patching methods and correct wor
 `DependsExt` allow you define default values of method arguments after `FastAPI` endpoint has been created.  
 
 Example:
-```
+```python
 from fastapi import FastAPI
 from fastapi import Query
 
@@ -110,7 +110,7 @@ def get_method(value: int = depends) -> int:
 ```
 
 Is equivalent for
-```
+```python
 from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import Query
