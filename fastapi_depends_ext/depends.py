@@ -54,7 +54,11 @@ class DependsAttrBinder:
                 use_cache=depends.use_cache,
             )
 
-            method_definition = getattr(_base_class, depends.method_name)
+            if hasattr(_base_class, depends.method_name):
+                method_definition = getattr(_base_class, depends.method_name)
+            else:
+                method_definition = getattr(instance, depends.method_name)
+
             if isinstance(method_definition, property):
                 depends_copy.dependency = method_definition.fget(instance)
             else:
@@ -67,7 +71,8 @@ class DependsAttrBinder:
             obj = super(_base_class, instance) if depends.from_super else instance
             return getattr(obj, depends.method_name)
 
-        base_class = get_base_class(self, method.__name__, method)
+        method_name = getattr(method, "__name__", type(method).__name__)
+        base_class = get_base_class(self, method_name, method)
         signature = get_typed_signature(method)
         parameters = (param for param in signature.parameters.values() if isinstance(param.default, DependsAttr))
         instance_method_params = {

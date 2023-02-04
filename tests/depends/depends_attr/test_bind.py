@@ -98,7 +98,7 @@ def test_bind__dependence_depends_property__dependency_has_been_set():
     assert depends.dependency is function
 
 
-def test_bind__dependence_depends_property_type__dependency_has_been_set():
+def test_bind__dependence_depends_class_variable_type__dependency_has_been_set():
     depends = DependsAttr("dependency")
 
     class Dependency:
@@ -117,7 +117,7 @@ def test_bind__dependence_depends_property_type__dependency_has_been_set():
     assert depends.dependency is Dependency
 
 
-def test_bind__dependence_depends_property_instance__dependency_has_been_set():
+def test_bind__dependence_depends_instance_defined_property__dependency_has_been_set():
     depends = DependsAttr("property")
 
     class CallableClass:
@@ -125,7 +125,10 @@ def test_bind__dependence_depends_property_instance__dependency_has_been_set():
             pass
 
     class TestClass(SimpleDependency):
-        property = CallableClass()
+        property: CallableClass
+
+        def __init__(self):
+            self.property = CallableClass()
 
         def method(self, depends_method: Any = depends):
             pass
