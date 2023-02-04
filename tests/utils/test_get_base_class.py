@@ -3,6 +3,7 @@ import re
 import pytest
 
 from fastapi_depends_ext.utils import get_base_class
+from fastapi_depends_ext.utils import patch_defaults
 from tests.utils_for_tests import SimpleDependency
 
 
@@ -150,3 +151,17 @@ def test_get_base_class__class_defined_not_callable__AttributeError(_method):
 
     with pytest.raises(TypeError, match=re.escape(f"Incorrect type of `{instance.method}`")):
         get_base_class(instance, "method", instance.method)
+
+
+@pytest.mark.parametrize("_method", supported_callable)
+def test_get_base_class__patched_method__correct_class(_method):
+    class TestClass:
+        def __init__(self):
+            setattr(self, "method", patch_defaults(self.method))
+
+        def method(self):
+            pass
+
+    instance = TestClass()
+
+    assert get_base_class(instance, "method", instance.method) is TestClass

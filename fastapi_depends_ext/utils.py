@@ -13,7 +13,11 @@ def _get_func(instance, func) -> callable:
     if type(func) is property:
         return _get_func(instance, func.fget(instance))
     elif type(func) in (classmethod, staticmethod) or inspect.ismethod(func):
-        return func.__func__
+        f = func.__func__
+        if hasattr(f, "__origin__"):
+            return _get_func(instance, f.__origin__)
+        else:
+            return f
     elif callable(func):
         return func
     else:
