@@ -1,3 +1,3 @@
 from .depends import DependsExt
-from .depends import DependsMethod
-from .depends import DependsMethodBinder
+from .depends import DependsAttr
+from .depends import DependsAttrBinder
