@@ -145,8 +145,7 @@ def test_bind__method_has_depends_property__method_change(mocker):
     assert isinstance(depends_attr.default, DependsAttr)
     assert depends_attr.default is not depends
     assert depends_attr.default.is_bound
-    assert depends_attr.default.dependency is not real_dependency
-    assert depends_attr.default.dependency() is real_dependency
+    assert depends_attr.default.dependency is real_dependency
 
 
 def test_bind__method_has_depends_class__method_change(mocker):
@@ -175,6 +174,68 @@ def test_bind__method_has_depends_class__method_change(mocker):
     assert depends_attr.default is not depends
     assert depends_attr.default.is_bound
     assert depends_attr.default.dependency is Dependency
+
+
+def test_bind__method_has_depends_callable__method_change(mocker):
+    depends = DependsAttr("dependency")
+
+    class Dependency:
+        def __call__(self):
+            return 1
+
+    class TestClass(DependsAttrBinder):
+        dependency = Dependency()
+
+        def method(self, depends_attr: Any = depends):
+            pass
+
+    with mocker.patch.object(DependsAttrBinder, "__init__", unittest.mock.MagicMock(return_value=None)):
+        instance = TestClass()
+    instance.bind(instance.method)
+
+    assert instance.method.__self__ is instance
+    assert instance.method.__func__ is not TestClass.method
+    assert instance.method.__func__.__code__ is TestClass.method.__code__
+
+    signature = get_typed_signature(instance.method)
+    depends_attr = signature.parameters["depends_attr"]
+    assert isinstance(depends_attr.default, DependsAttr)
+    assert depends_attr.default is not depends
+    assert depends_attr.default.is_bound
+    assert depends_attr.default.dependency is TestClass.dependency
+
+
+def test_bind__method_has_depends_instance_defined_variable__method_change(mocker):
+    depends = DependsAttr("dependency")
+
+    class Dependency:
+        def __call__(self):
+            return 1
+
+    class TestClass(DependsAttrBinder):
+        dependency: Dependency
+
+        def __init__(self, *args, **kwargs):
+            self.dependency = Dependency()
+            super(TestClass, self).__init__(*args, **kwargs)
+
+        def method(self, depends_attr: Any = depends):
+            pass
+
+    with mocker.patch.object(DependsAttrBinder, "__init__", unittest.mock.MagicMock(return_value=None)):
+        instance = TestClass()
+    instance.bind(instance.method)
+
+    assert instance.method.__self__ is instance
+    assert instance.method.__func__ is not TestClass.method
+    assert instance.method.__func__.__code__ is TestClass.method.__code__
+
+    signature = get_typed_signature(instance.method)
+    depends_attr = signature.parameters["depends_attr"]
+    assert isinstance(depends_attr.default, DependsAttr)
+    assert depends_attr.default is not depends
+    assert depends_attr.default.is_bound
+    assert depends_attr.default.dependency is instance.dependency
 
 
 def test_bind__method_has_depends_method_chained__method_changed_all(mocker):

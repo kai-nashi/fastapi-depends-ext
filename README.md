@@ -65,7 +65,7 @@ Use `DependsAttr` to `Depends` from current instance attributes. All examples us
 - class methods
 - static methods
 - instance methods
-- `property` returning `callable`
+- `property` (must return `callable` that will be used as dependency)
 
 Your class must inherit from `DependsAttrBinder` and attributes must be `DependsAttr`. `DependsAttrBinder` automatically patch all methods with `DependsAttr` by instance attributes.
 

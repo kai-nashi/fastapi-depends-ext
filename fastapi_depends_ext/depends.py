@@ -56,7 +56,7 @@ class DependsAttrBinder:
 
             method_definition = getattr(_base_class, depends.method_name)
             if isinstance(method_definition, property):
-                depends_copy.dependency = functools.partial(method_definition.fget, instance)
+                depends_copy.dependency = method_definition.fget(instance)
             else:
                 dependency = depends_attr_get_method(depends, _base_class, instance)
                 depends_copy.dependency = self.bind(dependency)
