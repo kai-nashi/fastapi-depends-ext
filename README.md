@@ -61,7 +61,7 @@ def items_list_square(items: List[int] = Depends(ItemsSquarePaginated().items)) 
 Use `DependsAttr` to `Depends` from current instance attributes. All examples use `asyncio`, but you can write all methods synchronous.
 
 `DependsAttr` support next properties:
-- class variables (must contains `callable` object)
+- class or instance variables (must contains `callable` object)
 - class methods
 - static methods
 - instance methods
