@@ -3,6 +3,10 @@ name = "fastapi-depends-ext"
 version = "0.2.1"
 description = "Extends FastAPI Depends classes to simple way of modifying them after creating"
 authors = ["Nikakto <mcgish@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/Nikakto/fastapi-depends-ext"
+keywords = ["fastapi", "depends", "dependencies"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
